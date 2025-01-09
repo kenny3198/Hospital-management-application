@@ -16,8 +16,9 @@ import { Input } from "@/components/ui/input"
 import React from 'react'
 import { FormFieldType } from "./form/PatientForm"
 import { Control } from "react-hook-form"
-// import DatePicker from "react-datepicker";
-// import "react-datepicker/dist/react-datepicker.css";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { Select, SelectContent, SelectTrigger, SelectValue } from "./ui/select";
 
 interface CustomProps {
     control: Control<any>
@@ -79,16 +80,31 @@ const RenderField = ({field, props}: {field: any, props: CustomProps}) => {
                     />
                     <FormControl>
                       {/* install date picker with npm install react-datepicker --save */}
-                    {/* <DatePicker selected={field.value}
+                    <DatePicker selected={field.value}
                      onChange={(date: any) => field.onChange(date)}
                      dateFormat ={dateFormat?? "MM/dd/yyyy"}
                      showTimeSelect={showTimeSelect ?? false}
                      timeInputLabel="Time:"
                      wrapperClassName="date-picker"
-                     /> */}
+                     />
                     </FormControl>
                   </div>
                 )
+                case FormFieldType.SELECT:
+                  return (
+                    <FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <FormControl> 
+                        <SelectTrigger className="shad-select-trigger">
+                          <SelectValue placeholder={placeholder}/>
+                        </SelectTrigger>
+                       </FormControl>
+                       <SelectContent className="shad-select-content">
+                            {props.children}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                  )
                 case FormFieldType.SKELETON:
                   return (
                     renderSkeleton ? renderSkeleton(field) : null
