@@ -1,5 +1,5 @@
 "use client"
-import { UserFormValidation } from "@/lib/validation";
+import { PatientFormValidation, UserFormValidation } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import Image from "next/image";
@@ -12,13 +12,14 @@ import CustomFormField from "../CustomFormField";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUser } from "@/lib/actions/patients.action";
-import { Doctors, GenderOptions, IdentificationTypes } from "@/constatnts";
+import { Doctors, GenderOptions, IdentificationTypes, PatientFormDefaultValues } from "@/constatnts";
 import { RadioGroupItem } from "../ui/radio-group";
 import { RadioGroup } from "../ui/radio-group";
 import { Label } from "../ui/label";
 import { SelectItem } from "@radix-ui/react-select";
 import { constants } from "buffer";
 import FileUploader from "../FileUploader";
+import { register } from "module";
 export enum FormFieldType{
   INPUT = "input",
   TEXTAREA = "textarea",
@@ -32,9 +33,10 @@ export enum FormFieldType{
  const RegisterForm = ({user}: {user: User}) => {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState<boolean>(false)
-    const form = useForm<z.infer<typeof UserFormValidation>>({
-      resolver: zodResolver(UserFormValidation),
+    const form = useForm<z.infer<typeof PatientFormValidation>>({
+      resolver: zodResolver(PatientFormValidation),
       defaultValues: {
+        ...PatientFormDefaultValues,
         name: "",
         email: "",
         phone: ""
@@ -42,22 +44,30 @@ export enum FormFieldType{
       },
     });
     // Define submit handler
-     const onSubmit = async ({name, email, phone}: z.infer<typeof UserFormValidation>) => {
+     const onSubmit = async (values : z.infer<typeof PatientFormValidation>) => {
         setIsLoading(true)
-     try {
-       const userData = {
-        name,
-        email,
-        phone
+        let formData;
+        if (values.identificationDocument && values.identificationDocument.length > 0) {
+          const blobFile = new Blob([values.identificationDocument[0]], {
+            type: values.identificationDocument[0].type
+          })
+          formData = new FormData();
+          formData.append("blobFile", blobFile)
+          formData.append("fileName", values.identificationDocument[0].name)
+        }
+       try {
+       const patientData = {
+        ...values,
+        userId: user.$id,
+        birthdate: new Date(values.birthDate),
+        identificationDocument: formData
        }
-       const user = await createUser(userData)
-
-       if (user) router.push(`/patients/${user.$id}/register`)
-     } catch (error) {
+      const patient = await registerPatients(patientData)
+      if (patient) router.push(`patients/${user.$id}/new-appointment`)
+       } catch (error) {
         console.log(error)
+       } 
      }
-    }
-  
     return (
         <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-12 flex-1">
@@ -248,7 +258,7 @@ export enum FormFieldType{
 
 <CustomFormField  
        fieldType= {FormFieldType.SKELETON}
-       name="identificationDocuments"
+       name="identificationDocument"
        label="Identification Documents Scanned Copy"
         renderSkeleton={(field) => ( 
             <FormControl>
